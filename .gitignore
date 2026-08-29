@@ -17,10 +17,9 @@ test-results/
 
 # Environment configurations (Strictly No Hardcoded Secrets)
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+!example.env
 *.pem
 *.key
 *.cert
@@ -55,3 +54,4 @@ rabbitmqdata/
 tmp/
 temp/
 *.tsbuildinfo
+*.zip

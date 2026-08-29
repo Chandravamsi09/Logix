@@ -82,7 +82,7 @@
 ```bash
 git clone https://github.com/Chandravamsi09/Logix.git
 cd Logix
-cp .env.example .env
+cp example.env .env
 ```
 
 ### 2. Start Full Stack with Docker Compose
