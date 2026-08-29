@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logix-api-gateway
+  namespace: logix-production
+  labels:
+    app: logix-api-gateway
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: logix-api-gateway
+  template:
+    metadata:
+      labels:
+        app: logix-api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: logix/api-gateway:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4000
+          envFrom:
+            - configMapRef:
+                name: logix-global-config
+            - secretRef:
+                name: logix-secrets
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /health/liveness
+              port: 4000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health/readiness
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logix-api-gateway-service
+  namespace: logix-production
+spec:
+  type: ClusterIP
+  ports:
+    - port: 4000
+      targetPort: 4000
+      protocol: TCP
+      name: http
+  selector:
+    app: logix-api-gateway

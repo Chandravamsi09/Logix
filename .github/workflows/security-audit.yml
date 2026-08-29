@@ -1,0 +1,40 @@
+name: Security & Secret Leak Audit
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: "0 0 * * 1"
+
+jobs:
+  secret-scan:
+    name: TruffleHog Secret Scanner
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan Repository for Secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          head: HEAD
+
+  dependency-audit:
+    name: NPM Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run NPM Audit
+        run: npm audit --audit-level=high

@@ -1,0 +1,353 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: logix-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - logix-network
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: logix-rabbitmq
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', 'check_running']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - logix-network
+
+  auth-db:
+    image: postgres:16-alpine
+    container_name: logix-auth-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: logix_auth
+    ports:
+      - '5432:5432'
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d logix_auth']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - logix-network
+
+  order-db:
+    image: postgres:16-alpine
+    container_name: logix-order-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: logix_order
+    ports:
+      - '5433:5432'
+    volumes:
+      - order_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d logix_order']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - logix-network
+
+  inventory-db:
+    image: mongo:7.0
+    container_name: logix-inventory-db
+    ports:
+      - '27017:27017'
+    volumes:
+      - inventory_db_data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', 'db.adminCommand(\'ping\')']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - logix-network
+
+  logistics-db:
+    image: postgres:16-alpine
+    container_name: logix-logistics-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: logix_logistics
+    ports:
+      - '5434:5432'
+    volumes:
+      - logistics_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d logix_logistics']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - logix-network
+
+  billing-db:
+    image: postgres:16-alpine
+    container_name: logix-billing-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: logix_billing
+    ports:
+      - '5435:5432'
+    volumes:
+      - billing_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d logix_billing']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - logix-network
+
+  analytics-db:
+    image: postgres:16-alpine
+    container_name: logix-analytics-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: logix_analytics
+    ports:
+      - '5436:5432'
+    volumes:
+      - analytics_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d logix_analytics']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - logix-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: logix-api-gateway
+    ports:
+      - '4000:4000'
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      AUTH_SERVICE_URL: http://auth-service:4001
+      ORDER_SERVICE_URL: http://order-service:4002
+      INVENTORY_SERVICE_URL: http://inventory-service:4003
+      LOGISTICS_SERVICE_URL: http://logistics-service:4004
+      BILLING_SERVICE_URL: http://billing-service:4005
+      NOTIFICATION_SERVICE_URL: http://notification-service:4006
+      ANALYTICS_SERVICE_URL: http://analytics-service:4007
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - logix-network
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: logix-auth-service
+    ports:
+      - '4001:4001'
+    environment:
+      NODE_ENV: production
+      PORT: 4001
+      DATABASE_URL: postgresql://postgres:postgres_password@auth-db:5432/logix_auth?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - logix-network
+
+  order-service:
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
+    container_name: logix-order-service
+    ports:
+      - '4002:4002'
+    environment:
+      NODE_ENV: production
+      PORT: 4002
+      DATABASE_URL: postgresql://postgres:postgres_password@order-db:5432/logix_order?schema=public
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      order-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - logix-network
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: services/inventory-service/Dockerfile
+    container_name: logix-inventory-service
+    ports:
+      - '4003:4003'
+    environment:
+      NODE_ENV: production
+      PORT: 4003
+      MONGODB_URI: mongodb://inventory-db:27017/logix_inventory
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      inventory-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - logix-network
+
+  logistics-service:
+    build:
+      context: .
+      dockerfile: services/logistics-service/Dockerfile
+    container_name: logix-logistics-service
+    ports:
+      - '4004:4004'
+    environment:
+      NODE_ENV: production
+      PORT: 4004
+      DATABASE_URL: postgresql://postgres:postgres_password@logistics-db:5432/logix_logistics?schema=public
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      logistics-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - logix-network
+
+  billing-service:
+    build:
+      context: .
+      dockerfile: services/billing-service/Dockerfile
+    container_name: logix-billing-service
+    ports:
+      - '4005:4005'
+    environment:
+      NODE_ENV: production
+      PORT: 4005
+      DATABASE_URL: postgresql://postgres:postgres_password@billing-db:5432/logix_billing?schema=public
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      billing-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - logix-network
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: logix-notification-service
+    ports:
+      - '4006:4006'
+    environment:
+      NODE_ENV: production
+      PORT: 4006
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - logix-network
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: services/analytics-service/Dockerfile
+    container_name: logix-analytics-service
+    ports:
+      - '4007:4007'
+    environment:
+      NODE_ENV: production
+      PORT: 4007
+      DATABASE_URL: postgresql://postgres:postgres_password@analytics-db:5432/logix_analytics?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - logix-network
+
+  web-dashboard:
+    build:
+      context: .
+      dockerfile: apps/web-dashboard/Dockerfile
+    container_name: logix-web-dashboard
+    ports:
+      - '3000:80'
+    environment:
+      VITE_API_GATEWAY_URL: http://localhost:4000
+      VITE_WS_URL: ws://localhost:4000
+    depends_on:
+      - api-gateway
+    networks:
+      - logix-network
+
+networks:
+  logix-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+  rabbitmq_data:
+  auth_db_data:
+  order_db_data:
+  inventory_db_data:
+  logistics_db_data:
+  billing_db_data:
+  analytics_db_data:

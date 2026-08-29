@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: logix-production
+  labels:
+    app.kubernetes.io/name: logix
+    environment: production
