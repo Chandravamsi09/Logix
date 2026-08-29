@@ -1,0 +1,21 @@
+{
+  "name": "@nexus/common",
+  "version": "1.0.0",
+  "description": "Enterprise Shared Contracts, Domain Events, DTOs, Result Monads, and Cross-Cutting Utilities",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.22.4",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/uuid": "^9.0.8",
+    "typescript": "^5.3.3"
+  }
+}
