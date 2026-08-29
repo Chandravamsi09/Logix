@@ -180,7 +180,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4001
-      DATABASE_URL: postgresql://postgres:postgres_password@auth-db:5432/logix_auth?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_dev_secret_password}@auth-db:5432/logix_auth?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
@@ -202,7 +202,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4002
-      DATABASE_URL: postgresql://postgres:postgres_password@order-db:5432/logix_order?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_dev_secret_password}@order-db:5432/logix_order?schema=public
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -246,7 +246,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4004
-      DATABASE_URL: postgresql://postgres:postgres_password@logistics-db:5432/logix_logistics?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_dev_secret_password}@logistics-db:5432/logix_logistics?schema=public
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -268,7 +268,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4005
-      DATABASE_URL: postgresql://postgres:postgres_password@billing-db:5432/logix_billing?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_dev_secret_password}@billing-db:5432/logix_billing?schema=public
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -311,7 +311,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4007
-      DATABASE_URL: postgresql://postgres:postgres_password@analytics-db:5432/logix_analytics?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_dev_secret_password}@analytics-db:5432/logix_analytics?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
